@@ -7,6 +7,27 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Running with Docker
+
+Requires Docker Desktop (or Docker Engine with Compose v2). No local PHP or Node needed.
+
+```bash
+docker compose up -d --build   # app → http://localhost:8000, Vite HMR on :5173
+docker compose logs -f         # follow app, queue and Vite output
+docker compose down            # stop (add -v to also drop the container node_modules volume)
+```
+
+First boot copies `.env.example` to `.env`, installs Composer dependencies, generates `APP_KEY`, runs migrations and links `public/storage` — each only if it hasn't been done yet.
+
+Run commands inside the app container:
+
+```bash
+docker compose exec app php artisan migrate
+docker compose exec app php artisan test
+docker compose exec app composer require vendor/package
+docker compose exec vite npm install some-package
+```
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

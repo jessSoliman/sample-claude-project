@@ -1,0 +1,52 @@
+# Local development stack: app on http://localhost:8000, Vite HMR on :5173.
+# SQLite lives in database/database.sqlite on the bind mount, so no DB service.
+
+x-php: &php
+  build:
+    context: ./docker/php
+    args:
+      UID: ${UID:-1000}
+      GID: ${GID:-1000}
+  volumes:
+    - .:/var/www/html
+
+services:
+  app:
+    <<: *php
+    command: php artisan serve --host=0.0.0.0 --port=8000
+    environment:
+      APP_BOOTSTRAP: "true"
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/up"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      # First boot may run composer install before the server starts.
+      start_period: 180s
+
+  queue:
+    <<: *php
+    command: php artisan queue:listen --tries=1
+    depends_on:
+      app:
+        condition: service_healthy
+
+  vite:
+    image: node:22-bookworm-slim
+    working_dir: /var/www/html
+    command: sh -c "npm install && npm run dev"
+    init: true
+    environment:
+      VITE_DOCKER: "true"
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/var/www/html
+      # Vite and Tailwind ship platform-specific binaries, so the container
+      # needs its own Linux node_modules rather than the host's.
+      - node_modules:/var/www/html/node_modules
+
+volumes:
+  node_modules:
